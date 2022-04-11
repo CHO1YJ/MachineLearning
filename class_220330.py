@@ -52,11 +52,16 @@ sort_in_x = temp_input_data[:, 0] # x를 오름차순으로 정렬
 y_real = temp_input_data[:, 1] # 실제값 배열 정의
     
 # MSE 계산
-sum_result = 0
-for n in range(25):
-    sum_result = sum_result + pow(y_hat[n] - y_real[n], 2)
-value_CF_MSE = sum_result / len(sort_in_x)
-value_CF_MSE = value_CF_MSE[0]
+
+# 기존 방식
+# sum_result = 0
+# for n in range(25):
+#     sum_result = sum_result + pow(y_hat[n] - y_real[n], 2)
+# value_CF_MSE = value_CF_MSE[0]
+
+# 개선 방식
+value_CF_MSE = np.sum(pow(y_hat[n] - y_real[n], 2)) / len(sort_in_x)
+print(value_CF_MSE)
 
 # 실습과제 #2
 # Setting Variable2
