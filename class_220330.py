@@ -61,7 +61,7 @@ y_real = temp_input_data[:, 1] # 실제값 배열 정의
 
 # 개선 방식
 value_CF_MSE = np.sum(pow(y_hat[n] - y_real[n], 2)) / len(sort_in_x)
-print(value_CF_MSE)
+print(value_CF_MSE) # MSE값 출력
 
 # 실습과제 #2
 # Setting Variable2
