@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 # 실습과제 #3
 # (1)
 # Reading Data
-input_data = pd.read_csv('lin_regression_data_01.csv', \
+input_data = pd.read_csv('Data_Base/lin_regression_data_01.csv', \
                          header=None).to_numpy(dtype='float')
 
 # Setting Variable1
