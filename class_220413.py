@@ -26,9 +26,8 @@ y_real = sorted_input_data[:, 1] # 실제값 배열 정의
 time_noise = 10 # 데이터 수 증폭 값
 temp_data = [] # original data와 random data의 합 기록
 
-def Gen_AugmentedSet(data, time):
-    gen_set = np.zeros((len(data) * time + len(data), 2)) # 발생시킬 증강 DB
-
+# 증강 데이터 생성 함수
+def Gen_AugmentedSet(data, time): # 원본 데이터와 배수를 입력으로 함
     # 아무래도 numpy보다 pandas에서 데이터의 정제가 간편했음
     df_x = pd.DataFrame(data[:, 0]) # 데이터 정제를 위해 numpy인 x에 관한 데이터셋 생성
     df_y = pd.DataFrame(data[:, 1]) # 데이터 정제를 위해 numpy인 y에 관한 데이터셋 생성
@@ -53,11 +52,11 @@ def Gen_AugmentedSet(data, time):
 # DB 증강 함수를 호출 및 반환된 값을 Original data로 초기화
 agumented_original_set = Gen_AugmentedSet(sorted_input_data, time_noise)
 
-# 생성된 Original data를 그래프를 생성하기 위해 필요로 하는 x와 y로 구분
-data_aug_x = agumented_original_set[:, 0]
-data_aug_y = agumented_original_set[:, 1]
+# 생성된 Original data의 그래프를 생성하기 위해 필요로 하는 정의역과 치역을 초기화
+data_aug_x = agumented_original_set[:, 0] # 정의역
+data_aug_y = agumented_original_set[:, 1] # 치역
 
-# Drawing Linear Regression
+# Drawing Origianl DB
 plt.figure()
 plt.scatter(data_aug_x, data_aug_y, color='0')
 plt.scatter(in_x, out_y, color="red")
@@ -70,15 +69,81 @@ plt.show()
                  
 
 # (2)
-def Dist_Set(data):
+# 데이터를 학습 데이터, 검증 데이터, 평가 데이터로 분할하는 함수
+def Dist_Set(data): # 원본 데이터를 입력값으로 함
+    # 입력 전 방법 안내
+    print("Data set에서 train, validation, test set으로의 분할 비율을 입력하세요.")
+    print("(주의) 비율의 총합은 10입니다.")
     
-    return True
+    # 예외처리
+    while(True):
+        # 입력 직전 방법 안내 및 비율값 입력
+        print("(Example) 입력 비율 : 2  (입력값은 0부터 9까지의 자연수))")
+        ratio_train = int(input("Train set의 입력 비율 : "))
+        ratio_val = int(input("Validaion set의 입력 비율 : "))
+        ratio_test = int(input("Test set의 입력 비율 : "))
+        ratio_sum = ratio_train + ratio_val + ratio_test
+        if ratio_sum == 10: # 비율값들의 합이 10이어야만 탈출
+            break
+        else: # 주의사항 상기 후 재입력 유도
+            print("")
+            print("비율의 합이 10이 아닙니다.")
+            print("(주의) 비율의 총합은 10이어야 합니다.")
+            print("다시 입력해주세요")
+    
+    # 학습, 검증, 평가 데이터의 개수 초기화
+    num_train = int(round(len(data) * ratio_train / 10, 0))
+    num_val = int(round(len(data) * ratio_val / 10, 0))
+    num_test = len(data) - num_train - num_val
+    
+    # 앞서와 마찬가지로 간편한 데이터 정제를 위해 pandas 활용
+    # 데이터 랜덤 비복원 추출 방식
+    df_xy = pd.DataFrame(data)
+    # 학습 데이터 초기화
+    train_set = df_xy.sample(n=num_train, replace=False)
+    df_xy = df_xy.drop(train_set.index)
+    # 검증 데이터 초기화
+    val_set = df_xy.sample(n=num_val, replace=False)
+    df_xy = df_xy.drop(val_set.index)
+    # 평가 데이터 초기
+    test_set = df_xy.sample(n=num_test, replace=False)
+    
+    # 정제된 데이터를 numpy 데이터로 변환
+    train_set = train_set.to_numpy()
+    val_set = val_set.to_numpy()
+    test_set = test_set.to_numpy()
+    
+    return train_set, val_set, test_set # 분할된 DB 반환
 
+# 함수 호출 및 반환값에 대한 학습, 검증, 평가 DB 초기화
+training_set, validation_set, test_set = Dist_Set(agumented_original_set)
 
+# 분할된 DB의 그래프를 생성하기 위해 필요로 하는 정의역과 치역 초기화
+# 학습 데이터부 초기화
+data_train_x = training_set[:, 0] # 정의역
+data_train_y = training_set[:, 1] # 치역
 
+# 검증 데이터부 초기화
+data_val_x = validation_set[:, 0] # 정의역
+data_val_y = validation_set[:, 1] # 치역
 
+# 평가 데이터부 초기화
+data_test_x = test_set[:, 0] # 정의역
+data_test_y = test_set[:, 1] # 치역
 
+# Drawing Training ans Validation and Test Set
+plt.figure()
+plt.scatter(data_train_x, data_train_y, color='red')
+plt.scatter(data_val_x, data_val_y, color='blue')
+plt.scatter(data_test_x, data_test_y, color='green')
+plt.legend(['Training set', 'Validation set', 'Test set'])
+plt.xlabel('x; Weight')
+plt.ylabel('y; Length')
+plt.title('Distrubute Original Set')
+plt.grid(True, alpha=0.5)
+plt.show()
 
+# (3)
 
 
 
