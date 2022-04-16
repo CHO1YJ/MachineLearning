@@ -24,7 +24,6 @@ sorted_in_x = sorted_input_data[:, 0] # x를 오름차순으로 정렬
 y_real = sorted_input_data[:, 1] # 실제값 배열 정의
 
 time_noise = 10 # 데이터 수 증폭 값
-temp_data = [] # original data와 random data의 합 기록
 
 # 증강 데이터 생성 함수
 def Gen_AugmentedSet(data, time): # 원본 데이터와 배수를 입력으로 함
