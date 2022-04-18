@@ -66,6 +66,8 @@ plt.title('Data Base')
 plt.grid(True, alpha=0.5)
 plt.show()
                  
+# (3)
+flag_div_703 = False
 
 # (2)
 # 데이터를 학습 데이터, 검증 데이터, 평가 데이터로 분할하는 함수
@@ -90,6 +92,10 @@ def Dist_Set(data): # 원본 데이터를 입력값으로 함
             print("(주의) 비율의 총합은 10이어야 합니다.")
             print("다시 입력해주세요")
     
+    print(ratio_train, ratio_val, ratio_test)
+    if ratio_train == 7 and ratio_val == 0 and ratio_test == 3:
+        flag = True
+    
     # 학습, 검증, 평가 데이터의 개수 초기화
     num_train = int(round(len(data) * ratio_train / 10, 0))
     num_val = int(round(len(data) * ratio_val / 10, 0))
@@ -112,10 +118,10 @@ def Dist_Set(data): # 원본 데이터를 입력값으로 함
     val_set = val_set.to_numpy()
     test_set = test_set.to_numpy()
     
-    return train_set, val_set, test_set # 분할된 DB 반환
+    return train_set, val_set, test_set, flag # 분할된 DB 반환
 
 # 함수 호출 및 반환값에 대한 학습, 검증, 평가 DB 초기화
-training_set, validation_set, test_set = Dist_Set(agumented_original_set)
+training_set, validation_set, test_set, flag_div_703 = Dist_Set(agumented_original_set)
 
 # 분할된 DB의 그래프를 생성하기 위해 필요로 하는 정의역과 치역 초기화
 # 학습 데이터부 초기화
@@ -143,7 +149,11 @@ plt.grid(True, alpha=0.5)
 plt.show()
 
 # (3)
-
+history_test_error = []
+history_training_error = []
+if flag_div_703 == True:
+    flag_div_703 = False
+    print("DB 준비 완료!")
 
 
 
