@@ -68,6 +68,7 @@ plt.show()
                  
 # (3)
 flag_div_703 = False
+flag_overfitting = True
 
 # (2)
 # 데이터를 학습 데이터, 검증 데이터, 평가 데이터로 분할하는 함수
@@ -149,13 +150,93 @@ plt.grid(True, alpha=0.5)
 plt.show()
 
 # (3)
-history_test_error = []
-history_training_error = []
+history_test_MSE = []
+history_training_MSE = []
 if flag_div_703 == True:
     flag_div_703 = False
     print("DB 준비 완료!")
+    
+# (2)의 기저함수 및 가중치 발진 함수 인용
+K_GBF = 3 # 기저함수의 개수
+y_gbf = np.zeros((len(sorted_in_x), K_GBF)) # bias를 제외한 입력에 대한 행렬 
+u_gbf = [] # 기저함수의 개수에 따른 가우스함수의 평균값 기록함
+variance_gbf = 0 # 기저함수의 개수에 따른 가우스함수의 분산값
+func_bias = np.ones((25, 1)) # bias 행렬
+# Gaussian Base Function 생성 함수
+def Gen_GBF(x, K): # 입력; 1. 정렬된 데이터 입력 / 2. 기저함수의 개수
+    # 가우스 함수 평균 및 분산 계산    
+    for k in range(K):
+        u_gbf.append(np.min(x) + (np.max(x) - np.min(x)) / (K - 1) * k)
+    variance_gbf = (np.max(x) - np.min(x)) / (K - 1)
+    # bias를 제외한 입력에 대한 행렬 초기화
+    for n in range(len(x)):
+        for k in range(K):
+            y_gbf[n][k] = np.exp(-1 / 2 * pow((x[n] - u_gbf[k]) / variance_gbf, 2))
+    
+    return y_gbf, variance_gbf # 입력에 대한 행렬 및 분산 반환
 
+# Weight 생성 함수
+def Gen_Weight(y, phi): # 입력; 1. 정렬된 데이터 출력 / 2. bias를 포함한 입력에 대한 행렬
+    # w = np.linalg.inv(np.transpose(phi) * phi) * np.transpose(phi) * y
+    # 행렬의 곱이기 때문에 A.dot(B) 이용
+    w = np.linalg.inv(np.transpose(phi).dot(phi)).dot(np.transpose(phi)).dot(y)
+    
+    return w # 가중치 반환
 
+history_part_weight =[] # (2)를 위한 기저함수 K에 따른 가중치 값 기록함
+for K in range(3, 60):
+    y_gbf = np.zeros((len(data_train_x), K))
+    u_gbf = []
+    variance_gbf = 0
+    func_bias = np.ones((len(data_train_x), 1))
+    5
+    Gen_GBF(data_train_x, K)
+    variance_gbf = Gen_GBF(data_train_x, K)[1]
+    phi_GBF = np.append(y_gbf, func_bias, axis=1)
+    
+    weight = Gen_Weight(data_train_y, phi_GBF) 
+    y_hat = 0
+    for n in range(K):
+        y_hat = y_hat + weight[n] * \
+            np.exp(-1 / 2 * pow((data_train_x - u_gbf[n]) / variance_gbf, 2))
+    y_hat = y_hat + weight[K]
+    value_CF_MSE_train = np.sum(pow(y_hat - data_train_y, 2)) / len(data_train_x)
+    history_training_MSE.append(value_CF_MSE_train)
+    
+    
+    y_gbf = np.zeros((len(data_test_x), K))
+    u_gbf = []
+    variance_gbf = 0
+    func_bias = np.ones((len(data_test_x), 1))
+    Gen_GBF(data_test_x, K)
+    variance_gbf = Gen_GBF(data_test_x, K)[1]
+    phi_GBF = np.append(y_gbf, func_bias, axis=1)
+    weight = Gen_Weight(data_test_y, phi_GBF) 
+    y_hat = 0
+    for n in range(K):
+        y_hat = y_hat + weight[n] * \
+            np.exp(-1 / 2 * pow((data_test_x - u_gbf[n]) / variance_gbf, 2))
+    y_hat = y_hat + weight[K]
+    value_CF_MSE_test = np.sum(pow(y_hat - data_test_y, 2)) / len(data_test_x)
+    if value_CF_MSE_test > 5 and flag_overfitting == True:
+        print(K)
+        flag_overfitting = False
+    history_test_MSE.append(value_CF_MSE_test)
+
+# 정의역으로 사용될 기저함수 K 구간 정의
+list_K_GBF = np.arange(3, 60, 1)
+
+# Drawing MSE
+plt.figure()
+plt.plot(list_K_GBF, history_training_MSE, 'g--')
+plt.plot(list_K_GBF, history_test_MSE, 'b--')
+plt.legend(['MSE of training', 'MSE of test'], loc='lower left')
+plt.xlabel('K; Count of Gauss Base Function')
+plt.ylabel('MSE')
+plt.ylim([0, 10])
+plt.title('Mean Square Error')
+plt.grid(True, alpha=0.5)
+plt.show()
 
 
 
