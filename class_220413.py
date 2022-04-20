@@ -24,6 +24,8 @@ sorted_in_x = sorted_input_data[:, 0] # x를 오름차순으로 정렬
 y_real = sorted_input_data[:, 1] # 실제값 배열 정의
 
 time_noise = 10 # 데이터 수 증폭 값
+temp_data_x = []
+temp_data_y = []
 
 # 증강 데이터 생성 함수
 def Gen_AugmentedSet(data, time): # 원본 데이터와 배수를 입력으로 함
@@ -31,17 +33,20 @@ def Gen_AugmentedSet(data, time): # 원본 데이터와 배수를 입력으로 �
     df_x = pd.DataFrame(data[:, 0]) # 데이터 정제를 위해 numpy인 x에 관한 데이터셋 생성
     df_y = pd.DataFrame(data[:, 1]) # 데이터 정제를 위해 numpy인 y에 관한 데이터셋 생성
     for n in range(time):
-        # 1. origianl data + random data
-        temp_data_x = data[:, 0] + round(np.random.rand(), 1) * 3 - 1.5
+        for m in range(len(data)):
+            # 1. origianl data + random data
+            temp_data_x.append(data[m, 0] + round(np.random.rand(), 1) * 3 - 1.5)
         # 2. 데이터 정제를 위해 '1.'에서 생성한 데이터를 데이터셋으로 변환
         df_rand_x = pd.DataFrame(temp_data_x)
-        # 3. 열을 기준으로 데이터셋을 추가
-        df_x = pd.concat([df_x, df_rand_x])      
-        
+            
         # x에서와 작업 동일
-        temp_data_y = data[:, 1] + round(np.random.rand(), 1) * 3 - 1.5
+        for m in range(len(data)):
+            temp_data_y.append(data[m, 1] + round(np.random.rand(), 1) * 3- 1.5)
         df_rand_y = pd.DataFrame(temp_data_y)
-        df_y = pd.concat([df_y, df_rand_y])   
+    
+    # 3. 열을 기준으로 데이터셋을 추가
+    df_x = pd.concat([df_x, df_rand_x])  
+    df_y = pd.concat([df_y, df_rand_y])   
 
     # 정제된 데이터를 numpy 데이터로 변환
     gen_set = pd.concat([df_x, df_y], axis=1).to_numpy()
@@ -184,12 +189,11 @@ def Gen_Weight(y, phi): # 입력; 1. 정렬된 데이터 출력 / 2. bias를 포
     return w # 가중치 반환
 
 history_part_weight =[] # (2)를 위한 기저함수 K에 따른 가중치 값 기록함
-for K in range(3, 60):
+for K in range(3, 50):
     y_gbf = np.zeros((len(data_train_x), K))
     u_gbf = []
     variance_gbf = 0
     func_bias = np.ones((len(data_train_x), 1))
-    5
     Gen_GBF(data_train_x, K)
     variance_gbf = Gen_GBF(data_train_x, K)[1]
     phi_GBF = np.append(y_gbf, func_bias, axis=1)
@@ -219,12 +223,12 @@ for K in range(3, 60):
     y_hat = y_hat + weight[K]
     value_CF_MSE_test = np.sum(pow(y_hat - data_test_y, 2)) / len(data_test_x)
     if value_CF_MSE_test > 5 and flag_overfitting == True:
-        print(K)
+        print("최적의 가우시안 기저함수 개수 K는 ", K)
         flag_overfitting = False
     history_test_MSE.append(value_CF_MSE_test)
 
 # 정의역으로 사용될 기저함수 K 구간 정의
-list_K_GBF = np.arange(3, 60, 1)
+list_K_GBF = np.arange(3, 50, 1)
 
 # Drawing MSE
 plt.figure()
@@ -233,7 +237,7 @@ plt.plot(list_K_GBF, history_test_MSE, 'b--')
 plt.legend(['MSE of training', 'MSE of test'], loc='lower left')
 plt.xlabel('K; Count of Gauss Base Function')
 plt.ylabel('MSE')
-plt.ylim([0, 10])
+plt.ylim([0, 5])
 plt.title('Mean Square Error')
 plt.grid(True, alpha=0.5)
 plt.show()
