@@ -91,30 +91,30 @@ sorted_test_x = test_set[:, 0]
 sorted_test_y = test_set[:, 1]
 
 
-# (3)
-history_test_MSE = []
-history_training_MSE = []
-if flag_div_703 == True:
-    flag_div_703 = False
-    print("DB 준비 완료!")
+# # (3)
+# history_test_MSE = []
+# history_training_MSE = []
+# if flag_div_703 == True:
+#     flag_div_703 = False
+#     print("DB 준비 완료!")
     
-# 지난주차의 기저함수 및 가중치 발진 함수 활용
-K_GBF = 3 # 기저함수의 개수
-y_gbf = np.zeros((len(in_x), K_GBF)) # bias를 제외한 입력에 대한 행렬 
-u_gbf = [] # 기저함수의 개수에 따른 가우스함수의 평균값 기록함
-variance_gbf = 0 # 기저함수의 개수에 따른 가우스함수의 분산값
-# Gaussian Base Function 생성 함수
-def Gen_GBF(x, K): # 입력; 1. 정렬된 데이터 입력 / 2. 기저함수의 개수
-    # 가우스 함수 평균 및 분산 계산    
-    for k in range(K):
-        u_gbf.append(np.min(x) + (np.max(x) - np.min(x)) / (K - 1) * k)
-    variance_gbf = (np.max(x) - np.min(x)) / (K - 1)
-    # bias를 제외한 입력에 대한 행렬 초기화
-    for n in range(len(x)):
-        for k in range(K):
-            y_gbf[n][k] = np.exp(-1 / 2 * pow((x[n] - u_gbf[k]) / variance_gbf, 2))
+# # 지난주차의 기저함수 및 가중치 발진 함수 활용
+# K_GBF = 3 # 기저함수의 개수
+# y_gbf = np.zeros((len(in_x), K_GBF)) # bias를 제외한 입력에 대한 행렬 
+# u_gbf = [] # 기저함수의 개수에 따른 가우스함수의 평균값 기록함
+# variance_gbf = 0 # 기저함수의 개수에 따른 가우스함수의 분산값
+# # Gaussian Base Function 생성 함수
+# def Gen_GBF(x, K): # 입력; 1. 정렬된 데이터 입력 / 2. 기저함수의 개수
+#     # 가우스 함수 평균 및 분산 계산    
+#     for k in range(K):
+#         u_gbf.append(np.min(x) + (np.max(x) - np.min(x)) / (K - 1) * k)
+#     variance_gbf = (np.max(x) - np.min(x)) / (K - 1)
+#     # bias를 제외한 입력에 대한 행렬 초기화
+#     for n in range(len(x)):
+#         for k in range(K):
+#             y_gbf[n][k] = np.exp(-1 / 2 * pow((x[n] - u_gbf[k]) / variance_gbf, 2))
     
-    return y_gbf, variance_gbf # 입력에 대한 행렬 및 분산 반환
+#     return y_gbf, variance_gbf # 입력에 대한 행렬 및 분산 반환
 
 # Weight 생성 함수
 def Gen_Weight(y, phi): # 입력; 1. 정렬된 데이터 출력 / 2. bias를 포함한 입력에 대한 행렬
@@ -124,75 +124,105 @@ def Gen_Weight(y, phi): # 입력; 1. 정렬된 데이터 출력 / 2. bias를 포
     
     return w # 가중치 반환
 
-for K in range(3, 20):
-    y_gbf = np.zeros((len(sorted_train_x), K))
-    u_gbf = []
-    variance_gbf = 0
-    func_bias = np.ones((len(sorted_train_x), 1))
-    Gen_GBF(sorted_train_x, K)
-    variance_gbf = Gen_GBF(sorted_train_x, K)[1]
-    phi_GBF = np.append(y_gbf, func_bias, axis=1)
+# for K in range(3, 20):
+#     y_gbf = np.zeros((len(sorted_train_x), K))
+#     u_gbf = []
+#     variance_gbf = 0
+#     func_bias = np.ones((len(sorted_train_x), 1))
+#     Gen_GBF(sorted_train_x, K)
+#     variance_gbf = Gen_GBF(sorted_train_x, K)[1]
+#     phi_GBF = np.append(y_gbf, func_bias, axis=1)
     
-    weight = Gen_Weight(sorted_train_y, phi_GBF) 
-    y_hat_train = 0
-    for n in range(K):
-        y_hat_train = y_hat_train + weight[n] * \
-            np.exp(-1 / 2 * pow((sorted_train_x - u_gbf[n]) / variance_gbf, 2))
-    y_hat_train = y_hat_train + weight[K]
-    value_CF_MSE_train = np.sum(pow(y_hat_train - sorted_train_y, 2)) / len(sorted_train_x)
-    history_training_MSE.append(value_CF_MSE_train)
+#     weight = Gen_Weight(sorted_train_y, phi_GBF) 
+#     y_hat_train = 0
+#     for n in range(K):
+#         y_hat_train = y_hat_train + weight[n] * \
+#             np.exp(-1 / 2 * pow((sorted_train_x - u_gbf[n]) / variance_gbf, 2))
+#     y_hat_train = y_hat_train + weight[K]
+#     value_CF_MSE_train = np.sum(pow(y_hat_train - sorted_train_y, 2)) / len(sorted_train_x)
+#     history_training_MSE.append(value_CF_MSE_train)
     
     
-    y_gbf = np.zeros((len(sorted_test_x), K))
-    u_gbf = []
-    variance_gbf = 0
-    func_bias = np.ones((len(sorted_test_x), 1))
-    Gen_GBF(sorted_test_x, K)
-    variance_gbf = Gen_GBF(sorted_test_x, K)[1]
-    phi_GBF = np.append(y_gbf, func_bias, axis=1)
-    weight = Gen_Weight(sorted_test_y, phi_GBF) 
-    y_hat_test = 0
-    for n in range(K):
-        y_hat_test = y_hat_test + weight[n] * \
-            np.exp(-1 / 2 * pow((sorted_test_x - u_gbf[n]) / variance_gbf, 2))
-    y_hat_test = y_hat_test + weight[K]
-    value_CF_MSE_test = np.sum(pow(y_hat_test - sorted_test_y, 2)) / len(sorted_test_x)
-    if value_CF_MSE_test > 3 and flag_overfitting == True:
-        print("최적의 가우시안 기저함수 개수 K는 ", K)
-        flag_overfitting = False
-    history_test_MSE.append(value_CF_MSE_test)
+#     y_gbf = np.zeros((len(sorted_test_x), K))
+#     u_gbf = []
+#     variance_gbf = 0
+#     func_bias = np.ones((len(sorted_test_x), 1))
+#     Gen_GBF(sorted_test_x, K)
+#     variance_gbf = Gen_GBF(sorted_test_x, K)[1]
+#     phi_GBF = np.append(y_gbf, func_bias, axis=1)
+#     weight = Gen_Weight(sorted_test_y, phi_GBF) 
+#     y_hat_test = 0
+#     for n in range(K):
+#         y_hat_test = y_hat_test + weight[n] * \
+#             np.exp(-1 / 2 * pow((sorted_test_x - u_gbf[n]) / variance_gbf, 2))
+#     y_hat_test = y_hat_test + weight[K]
+#     value_CF_MSE_test = np.sum(pow(y_hat_test - sorted_test_y, 2)) / len(sorted_test_x)
+#     if value_CF_MSE_test > 3 and flag_overfitting == True:
+#         print("최적의 가우시안 기저함수 개수 K는 ", K)
+#         flag_overfitting = False
+#     history_test_MSE.append(value_CF_MSE_test)
 
-# 정의역으로 사용될 기저함수 K 구간 정의
-list_K_GBF = np.arange(3, 20, 1)
+# # 정의역으로 사용될 기저함수 K 구간 정의
+# list_K_GBF = np.arange(3, 20, 1)
+
+# # Drawing Training ans Validation and Test Set
+# plt.figure()
+# plt.scatter(data_train_x, data_train_y, color='red')
+# plt.scatter(data_val_x, data_val_y, color='blue')
+# plt.scatter(data_test_x, data_test_y, color='green')
+# plt.plot(sorted_train_x, y_hat_train)
+# plt.legend(['train_as', 'Training set', 'Validation set', 'Test set'])
+# plt.xlabel('x; Weight')
+# plt.ylabel('y; Length')
+# plt.title('Distrubute Original Set')
+# plt.grid(True, alpha=0.5)
+# plt.show()
+
+# # Drawing MSE
+# plt.figure()
+# plt.plot(list_K_GBF, history_training_MSE, 'g--')
+# plt.plot(list_K_GBF, history_test_MSE, 'b--')
+# plt.legend(['MSE of training', 'MSE of test'], loc='upper left')
+# plt.xlabel('K; Count of Gauss Base Function')
+# plt.ylabel('MSE')
+# plt.title('Mean Square Error')
+# plt.grid(True, alpha=0.5)
+# plt.show()
+
+# (4)
+def Gen_PBF(x, K): # 입력; 1. 정렬된 데이터 입력 / 2. 기저함수의 개수
+    for n in range(len(x)):
+        for k in range(K):
+            y_pbf[n][k] = pow(x, k)
+    return y_pbf
+
+history_training_MSE_PBF = []
+for K in range(3, 20):
+    y_pbf = np.zeros((len(sorted_train_x), K))
+    func_bias = np.ones((len(sorted_train_x), 1))
+    Gen_PBF(sorted_train_x, K)
+    phi_PBF = np.append(y_pbf, func_bias, axis=1)
+    
+    weight = Gen_Weight(sorted_train_y, phi_PBF) 
+    y_hat_train_PBF = 0
+    for n in range(K):
+        y_hat_train_PBF = y_hat_train_PBF + weight[n] * pow(sorted_train_x, n)
+    y_hat_train_PBF = y_hat_train_PBF + weight[K]
+    value_CF_MSE_train_PBF = np.sum(pow(y_hat_train_PBF - sorted_train_y, 2)) / len(sorted_train_x)
+    history_training_MSE_PBF.append(value_CF_MSE_train_PBF)
 
 # Drawing Training ans Validation and Test Set
 plt.figure()
 plt.scatter(data_train_x, data_train_y, color='red')
-plt.scatter(data_val_x, data_val_y, color='blue')
-plt.scatter(data_test_x, data_test_y, color='green')
-plt.plot(sorted_train_x, y_hat_train)
-plt.legend(['train_as', 'Training set', 'Validation set', 'Test set'])
+# plt.scatter(data_val_x, data_val_y, color='blue')
+# plt.scatter(data_test_x, data_test_y, color='green')
+plt.plot(sorted_train_x, y_hat_train_PBF)
+# plt.legend(['train_as', 'Training set', 'Validation set', 'Test set'])
 plt.xlabel('x; Weight')
 plt.ylabel('y; Length')
 plt.title('Distrubute Original Set')
 plt.grid(True, alpha=0.5)
 plt.show()
-
-# Drawing MSE
-plt.figure()
-plt.plot(list_K_GBF, history_training_MSE, 'g--')
-plt.plot(list_K_GBF, history_test_MSE, 'b--')
-plt.legend(['MSE of training', 'MSE of test'], loc='upper left')
-plt.xlabel('K; Count of Gauss Base Function')
-plt.ylabel('MSE')
-plt.title('Mean Square Error')
-plt.grid(True, alpha=0.5)
-plt.show()
-
-
-
-
-
 
 
 
