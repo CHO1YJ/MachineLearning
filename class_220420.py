@@ -6,15 +6,14 @@ import matplotlib.pyplot as plt
 # 실습과제 #3
 # (1)
 # Reading Data
+# data 열은 index 열로 우리의 실습에서는 필요 없으므로 drop한다.
 input_data = pd.read_csv('Data_Base/chap2_data.csv')\
     .drop(['data'], axis=1).to_numpy(dtype='float')
 
 # Setting Variable1
+# 이미 정렬이 되어있으므로 데이터 그대로 사용한다.
 in_x = input_data[:, 0] # 입력; 추의 무게 / x; weight
 out_y = input_data[:, 1] # 출력; 늘어난 용수철의 길이 / y; Length
-
-flag_div_703 = False
-flag_overfitting = True
 
 # 데이터를 학습 데이터, 검증 데이터, 평가 데이터로 분할하는 함수
 def Dist_Set(data): # 원본 데이터를 입력값으로 함
@@ -39,8 +38,8 @@ def Dist_Set(data): # 원본 데이터를 입력값으로 함
             print("다시 입력해주세요")
     
     print(ratio_train, ratio_val, ratio_test)
-    if ratio_train == 7 and ratio_val == 0 and ratio_test == 3:
-        flag = True
+    # if ratio_train == 7 and ratio_val == 0 and ratio_test == 3:
+    #     flag = True
     
     # 학습, 검증, 평가 데이터의 개수 초기화
     num_train = int(round(len(data) * ratio_train / 10, 0))
@@ -64,10 +63,10 @@ def Dist_Set(data): # 원본 데이터를 입력값으로 함
     val_set = val_set.to_numpy()
     test_set = test_set.to_numpy()
     
-    return train_set, val_set, test_set, flag # 분할된 DB 반환
+    return train_set, val_set, test_set # 분할된 DB 반환
 
 # 함수 호출 및 반환값에 대한 학습, 검증, 평가 DB 초기화
-training_set, validation_set, test_set, flag_div_703 = Dist_Set(input_data)
+training_set, validation_set, test_set = Dist_Set(input_data)
 
 # 분할된 DB의 그래프를 생성하기 위해 필요로 하는 정의역과 치역 초기화
 # 학습 데이터부 초기화
@@ -90,14 +89,7 @@ sorted_train_y = training_set[:, 1]
 sorted_test_x = test_set[:, 0]
 sorted_test_y = test_set[:, 1]
 
-
-# (3)
-history_test_MSE = []
-history_training_MSE = []
-if flag_div_703 == True:
-    flag_div_703 = False
-    print("DB 준비 완료!")
-    
+# (3)   
 # 지난주차의 기저함수 및 가중치 발진 함수 활용
 K_GBF = 3 # 기저함수의 개수
 y_gbf = np.zeros((len(in_x), K_GBF)) # bias를 제외한 입력에 대한 행렬 
@@ -124,7 +116,12 @@ def Gen_Weight(y, phi): # 입력; 1. 정렬된 데이터 출력 / 2. bias를 포
     
     return w # 가중치 반환
 
-for K in range(3, 20):
+history_test_MSE = [] # 가우시안 기저함수의 평가 DB MSE
+history_training_MSE = [] # 가우시안 기저함수의 훈 DB MSE
+flag_overfitting_GBF = False # GBF에서의 overfitting 발생 여부 확인
+K_iter_gbf = 150 # 가우시안 기저함수의 최대 개수
+K_optimal_GBF = 0
+for K in range(3, K_iter_gbf): # 기저함수 개수의 범위 제시
     y_gbf = np.zeros((len(sorted_train_x), K))
     u_gbf = []
     variance_gbf = 0
@@ -157,15 +154,16 @@ for K in range(3, 20):
             np.exp(-1 / 2 * pow((sorted_test_x - u_gbf[n]) / variance_gbf, 2))
     y_hat_test = y_hat_test + weight_GBF[K]
     value_CF_MSE_test = np.sum(pow(y_hat_test - sorted_test_y, 2)) / len(sorted_test_x)
-    if value_CF_MSE_test > 3 and flag_overfitting == True:
+    if value_CF_MSE_test > 3 and flag_overfitting_GBF == False:
         print("최적의 가우시안 기저함수 개수 K는 ", K)
-        flag_overfitting = False
+        K_optimal_GBF = K - 1
+        flag_overfitting_GBF = True
     history_test_MSE.append(value_CF_MSE_test)
 
 # 정의역으로 사용될 기저함수 K 구간 정의
-list_K_GBF = np.arange(3, 20, 1)
+list_K_GBF = np.arange(3, K_iter_gbf, 1)
 
-# Drawing Training ans Validation and Test Set
+# Drawing Training and Validation and Test Set
 plt.figure()
 plt.scatter(data_train_x, data_train_y, color='red')
 plt.scatter(data_val_x, data_val_y, color='blue')
@@ -198,7 +196,10 @@ def Gen_PBF(x, K): # 입력; 1. 정렬된 데이터 입력 / 2. 기저함수의 
 
 history_training_MSE_PBF = []
 history_test_MSE_PBF = []
-for K in range(3, 15):
+flag_overfitting_PBF = False # PBF에서의 overfitting 발생 여부 확인
+K_iter_pbf = 20 # 다항식 기저함수의 최대 개수
+K_optimal_PBF = 0
+for K in range(3, K_iter_pbf):
     y_pbf = np.zeros((len(sorted_train_x), K))
     func_bias = np.ones((len(sorted_train_x), 1))
     Gen_PBF(sorted_train_x, K)
@@ -221,10 +222,14 @@ for K in range(3, 15):
         y_hat_test_PBF = y_hat_test_PBF + weight_PBF[n] * pow(sorted_test_x, n + 1)
     y_hat_test_PBF = y_hat_test_PBF + weight_PBF[K]
     value_CF_MSE_test_PBF = np.sum(pow(y_hat_test_PBF - sorted_test_y, 2)) / len(sorted_test_x)
+    if value_CF_MSE_test_PBF > 3 and flag_overfitting_PBF == False:
+        print("최적의 다항식 기저함수 개수 K는 ", K)
+        K_optimal_PBF = K - 1
+        flag_overfitting_PBF = True
     history_test_MSE_PBF.append(value_CF_MSE_test_PBF)
 
 # 정의역으로 사용될 기저함수 K 구간 정의
-list_K_GBF = np.arange(3, 15, 1)
+list_K_GBF = np.arange(3, K_iter_pbf, 1)
 
 # Drawing Training ans Validation and Test Set
 plt.figure()
