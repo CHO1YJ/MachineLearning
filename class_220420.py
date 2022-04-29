@@ -154,9 +154,10 @@ for K in range(3, K_iter_gbf): # 기저함수 개수의 범위 제시
             np.exp(-1 / 2 * pow((sorted_test_x - u_gbf[n]) / variance_gbf, 2))
     y_hat_test = y_hat_test + weight_GBF[K]
     value_CF_MSE_test = np.sum(pow(y_hat_test - sorted_test_y, 2)) / len(sorted_test_x)
-    if value_CF_MSE_test > 3 and flag_overfitting_GBF == False:
-        print("최적의 가우시안 기저함수 개수 K는 ", K)
-        K_optimal_GBF = K - 1
+    if value_CF_MSE_test > 1 and flag_overfitting_GBF == False:
+        print("최적의 가우시안 기저함수 개수 K는 ", K -1 - 3)
+        print("현재 K에 대한 MSE 값 : ", value_CF_MSE_test)
+        K_optimal_GBF = K - 1 - 3
         flag_overfitting_GBF = True
     history_test_MSE.append(value_CF_MSE_test)
 
@@ -168,11 +169,11 @@ plt.figure()
 plt.scatter(data_train_x, data_train_y, color='red')
 plt.scatter(data_val_x, data_val_y, color='blue')
 plt.scatter(data_test_x, data_test_y, color='green')
-plt.plot(sorted_train_x, y_hat_train)
+plt.plot(sorted_train_x, y_hat_train, 'b')
 plt.legend(['train_as', 'Training set', 'Validation set', 'Test set'])
 plt.xlabel('x; Weight')
 plt.ylabel('y; Length')
-plt.title('Distrubute Original Set')
+plt.title('1. Distrubute Original Set')
 plt.grid(True, alpha=0.5)
 plt.show()
 
@@ -183,7 +184,46 @@ plt.plot(list_K_GBF, history_test_MSE, 'b--')
 plt.legend(['MSE of training', 'MSE of test'], loc='upper left')
 plt.xlabel('K; Count of Gauss Basis Function')
 plt.ylabel('MSE')
-plt.title('Mean Square Error')
+plt.title('2. Mean Square Error')
+plt.grid(True, alpha=0.5)
+plt.show()
+
+for K in range(3, K_optimal_GBF): # 이상적인 기저함수 개수의 범위 제시
+    y_gbf = np.zeros((len(sorted_train_x), K))
+    u_gbf = []
+    variance_gbf = 0
+    func_bias = np.ones((len(sorted_train_x), 1))
+    Gen_GBF(sorted_train_x, K)
+    variance_gbf = Gen_GBF(sorted_train_x, K)[1]
+    phi_GBF = np.append(y_gbf, func_bias, axis=1)
+    
+    weight_GBF = Gen_Weight(sorted_train_y, phi_GBF) 
+    y_hat_train = 0
+    for n in range(K):
+        y_hat_train = y_hat_train + weight_GBF[n] * \
+            np.exp(-1 / 2 * pow((sorted_train_x - u_gbf[n]) / variance_gbf, 2))
+    y_hat_train = y_hat_train + weight_GBF[K]
+    value_CF_MSE_train = np.sum(pow(y_hat_train - sorted_train_y, 2)) / len(sorted_train_x)
+    history_training_MSE.append(value_CF_MSE_train)
+
+# Drawing Linear Regression
+plt.figure()
+plt.scatter(data_train_x, data_train_y, color='red')
+plt.plot(sorted_train_x, y_hat_train, 'b')
+plt.legend(['Analytic solution', 'Linear Combination'])
+plt.xlabel('x; Weight')
+plt.ylabel('y; Length')
+plt.title('3. Linear Regression')
+plt.grid(True, alpha=0.5)
+plt.show()
+
+plt.figure()
+plt.scatter(data_test_x, data_test_y, color='green')
+plt.plot(sorted_train_x, y_hat_train, 'b')
+plt.legend(['Analytic solution', 'Test set'])
+plt.xlabel('x; Weight')
+plt.ylabel('y; Length')
+plt.title('3. Linear Regression')
 plt.grid(True, alpha=0.5)
 plt.show()
 
@@ -222,9 +262,10 @@ for K in range(3, K_iter_pbf):
         y_hat_test_PBF = y_hat_test_PBF + weight_PBF[n] * pow(sorted_test_x, n + 1)
     y_hat_test_PBF = y_hat_test_PBF + weight_PBF[K]
     value_CF_MSE_test_PBF = np.sum(pow(y_hat_test_PBF - sorted_test_y, 2)) / len(sorted_test_x)
-    if value_CF_MSE_test_PBF > 3 and flag_overfitting_PBF == False:
-        print("최적의 다항식 기저함수 개수 K는 ", K)
-        K_optimal_PBF = K - 1
+    if value_CF_MSE_test_PBF > 1 and flag_overfitting_PBF == False:
+        print("최적의 다항식 기저함수 개수 K는 ", K - 1 - 3)
+        print("현재 K에 대한 MSE 값 : ", value_CF_MSE_test_PBF)
+        K_optimal_PBF = K - 1 - 3
         flag_overfitting_PBF = True
     history_test_MSE_PBF.append(value_CF_MSE_test_PBF)
 
@@ -239,7 +280,7 @@ plt.plot(sorted_train_x, y_hat_train_PBF)
 plt.legend(['train_as', 'Training set', 'Test set'])
 plt.xlabel('x; Weight')
 plt.ylabel('y; Length')
-plt.title('Distrubute Original Set')
+plt.title('4. Distrubute Original Set')
 plt.grid(True, alpha=0.5)
 plt.show()
 
@@ -250,11 +291,43 @@ plt.plot(list_K_GBF, history_test_MSE_PBF, 'b--')
 plt.legend(['MSE of training', 'MSE of test'], loc='upper left')
 plt.xlabel('K; Count of Polynomial Basis Function')
 plt.ylabel('MSE')
-plt.title('Mean Square Error')
+plt.title('5. Mean Square Error')
 plt.grid(True, alpha=0.5)
 plt.show()
 
+for K in range(3, K_optimal_PBF):
+    y_pbf = np.zeros((len(sorted_train_x), K))
+    func_bias = np.ones((len(sorted_train_x), 1))
+    Gen_PBF(sorted_train_x, K)
+    phi_PBF = np.append(y_pbf, func_bias, axis=1)
+    weight_PBF = Gen_Weight(sorted_train_y, phi_PBF) 
+    y_hat_train_PBF = 0
+    for n in range(K):
+        y_hat_train_PBF = y_hat_train_PBF + weight_PBF[n] * pow(sorted_train_x, n + 1)
+    y_hat_train_PBF = y_hat_train_PBF + weight_PBF[K]
+    value_CF_MSE_train_PBF = np.sum(pow(y_hat_train_PBF - sorted_train_y, 2)) / len(sorted_train_x)
+    history_training_MSE_PBF.append(value_CF_MSE_train_PBF)
 
+# Drawing Linear Regression
+plt.figure()
+plt.scatter(data_train_x, data_train_y, color='red')
+plt.plot(sorted_train_x, y_hat_train_PBF, 'b')
+plt.legend(['Analytic solution', 'Training set'])
+plt.xlabel('x; Weight')
+plt.ylabel('y; Length')
+plt.title('6. Linear Regression')
+plt.grid(True, alpha=0.5)
+plt.show()
+
+plt.figure()
+plt.scatter(data_test_x, data_test_y, color='green')
+plt.plot(sorted_train_x, y_hat_train_PBF, 'b')
+plt.legend(['Analytic solution', 'Test set'])
+plt.xlabel('x; Weight')
+plt.ylabel('y; Length')
+plt.title('6. Linear Regression')
+plt.grid(True, alpha=0.5)
+plt.show()
 
 
 
