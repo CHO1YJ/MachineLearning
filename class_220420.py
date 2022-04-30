@@ -90,7 +90,7 @@ sorted_test_x = test_set[:, 0]
 sorted_test_y = test_set[:, 1]
 
 # (3)   
-# 지난주차의 기저함수 및 가중치 발진 함수 활용
+# 지지난주차의 기저함수 및 가중치 발진 함수 활용
 K_GBF = 3 # 기저함수의 개수
 y_gbf = np.zeros((len(in_x), K_GBF)) # bias를 제외한 입력에 대한 행렬 
 u_gbf = [] # 기저함수의 개수에 따른 가우스함수의 평균값 기록함
@@ -116,12 +116,16 @@ def Gen_Weight(y, phi): # 입력; 1. 정렬된 데이터 출력 / 2. bias를 포
     
     return w # 가중치 반환
 
-history_test_MSE = [] # 가우시안 기저함수의 평가 DB MSE
-history_training_MSE = [] # 가우시안 기저함수의 훈 DB MSE
+history_test_MSE = [] # 가우시안 기저함수의 평가 DB MSE 기록함
+history_training_MSE = [] # 가우시안 기저함수의 훈련 DB MSE 기록함
 flag_overfitting_GBF = False # GBF에서의 overfitting 발생 여부 확인
 K_iter_gbf = 150 # 가우시안 기저함수의 최대 개수
-K_optimal_GBF = 0
-for K in range(3, K_iter_gbf): # 기저함수 개수의 범위 제시
+K_optimal_GBF = 0 # GBF의 이상적 기저함수 개수
+# 가우시안 기저함수 개수 K에 따른 기저함수 발생 함수와 가중치 발생 함수를 
+# 활용하여 y_hat과 MSE를 계산하는 반복문
+# 세부 계산 내용은 지지난주차의 내용과 동일하므로 추가된 부분에 대하여 설명
+for K in range(3, K_iter_gbf):
+    # Training set에 대한 y_hat, MSE 계산 과정
     y_gbf = np.zeros((len(sorted_train_x), K))
     u_gbf = []
     variance_gbf = 0
@@ -139,7 +143,7 @@ for K in range(3, K_iter_gbf): # 기저함수 개수의 범위 제시
     value_CF_MSE_train = np.sum(pow(y_hat_train - sorted_train_y, 2)) / len(sorted_train_x)
     history_training_MSE.append(value_CF_MSE_train)
     
-    
+    # Test set에 대한 y_hat, MSE 계산 과정
     y_gbf = np.zeros((len(sorted_test_x), K))
     u_gbf = []
     variance_gbf = 0
@@ -154,10 +158,17 @@ for K in range(3, K_iter_gbf): # 기저함수 개수의 범위 제시
             np.exp(-1 / 2 * pow((sorted_test_x - u_gbf[n]) / variance_gbf, 2))
     y_hat_test = y_hat_test + weight_GBF[K]
     value_CF_MSE_test = np.sum(pow(y_hat_test - sorted_test_y, 2)) / len(sorted_test_x)
+    # 평가 DB를 통한 MSE 값을 활용하여 Training model 검토
+    # MSE가 1보다 커지는 순간 MSE 곡선의 기울기 부호가 변화함을 인식
     if value_CF_MSE_test > 1 and flag_overfitting_GBF == False:
-        print("최적의 가우시안 기저함수 개수 K는 ", K -1 - 3)
+        # 현재의 K는 MSE가 1을 넘어선 K이므로 1을 감소
+        # 현재 K는 3부터 시작하므로 동기를 맞추기 위하여 3을 추가 감소
+        # 따라서, Optimal K = K - 1 - 3
+        print("최적의 가우시안 기저함수 개수 K는 ", K - 1 - 3)
         print("현재 K에 대한 MSE 값 : ", value_CF_MSE_test)
+        # 가우시안 기저함수의 이상적 K 개수를 초기화
         K_optimal_GBF = K - 1 - 3
+        # Overfitting이 발생하였으므로 flag를 False에서 True로 전환
         flag_overfitting_GBF = True
     history_test_MSE.append(value_CF_MSE_test)
 
@@ -188,6 +199,7 @@ plt.title('2. Mean Square Error')
 plt.grid(True, alpha=0.5)
 plt.show()
 
+# 가우시안 기저함수의 이상적 K 개수에 대한 Analytic Solution을 도식화
 for K in range(3, K_optimal_GBF): # 이상적인 기저함수 개수의 범위 제시
     y_gbf = np.zeros((len(sorted_train_x), K))
     u_gbf = []
@@ -203,27 +215,26 @@ for K in range(3, K_optimal_GBF): # 이상적인 기저함수 개수의 범위 �
         y_hat_train = y_hat_train + weight_GBF[n] * \
             np.exp(-1 / 2 * pow((sorted_train_x - u_gbf[n]) / variance_gbf, 2))
     y_hat_train = y_hat_train + weight_GBF[K]
-    value_CF_MSE_train = np.sum(pow(y_hat_train - sorted_train_y, 2)) / len(sorted_train_x)
-    history_training_MSE.append(value_CF_MSE_train)
 
-# Drawing Linear Regression
+# Drawing Linear Regression1 - Training DB
 plt.figure()
 plt.scatter(data_train_x, data_train_y, color='red')
 plt.plot(sorted_train_x, y_hat_train, 'b')
-plt.legend(['Analytic solution', 'Linear Combination'])
+plt.legend(['Analytic solution', 'Training set'])
 plt.xlabel('x; Weight')
 plt.ylabel('y; Length')
-plt.title('3. Linear Regression')
+plt.title('3-1. Linear Regression')
 plt.grid(True, alpha=0.5)
 plt.show()
 
+# Drawing Linear Regression2 - Test DB
 plt.figure()
 plt.scatter(data_test_x, data_test_y, color='green')
 plt.plot(sorted_train_x, y_hat_train, 'b')
 plt.legend(['Analytic solution', 'Test set'])
 plt.xlabel('x; Weight')
 plt.ylabel('y; Length')
-plt.title('3. Linear Regression')
+plt.title('3-2. Linear Regression')
 plt.grid(True, alpha=0.5)
 plt.show()
 
@@ -234,12 +245,14 @@ def Gen_PBF(x, K): # 입력; 1. 정렬된 데이터 입력 / 2. 기저함수의 
             y_pbf[n][k] = pow(x[n], k + 1)
     return y_pbf
 
-history_training_MSE_PBF = []
-history_test_MSE_PBF = []
+history_training_MSE_PBF = [] # 가우시안 기저함수의 평가 DB MSE 기록함
+history_test_MSE_PBF = [] # 가우시안 기저함수의 훈련 DB MSE 기록함
 flag_overfitting_PBF = False # PBF에서의 overfitting 발생 여부 확인
 K_iter_pbf = 20 # 다항식 기저함수의 최대 개수
-K_optimal_PBF = 0
+K_optimal_PBF = 0 # PBF의 이상적 기저함수 개수
+# GBF에서와 반복문 생성 근거가 동일
 for K in range(3, K_iter_pbf):
+    # Training set에 대한 y_hat, MSE 계산 과정
     y_pbf = np.zeros((len(sorted_train_x), K))
     func_bias = np.ones((len(sorted_train_x), 1))
     Gen_PBF(sorted_train_x, K)
@@ -252,6 +265,7 @@ for K in range(3, K_iter_pbf):
     value_CF_MSE_train_PBF = np.sum(pow(y_hat_train_PBF - sorted_train_y, 2)) / len(sorted_train_x)
     history_training_MSE_PBF.append(value_CF_MSE_train_PBF)
     
+    # Test set에 대한 y_hat, MSE 계산 과정
     y_pbf = np.zeros((len(sorted_test_x), K))
     func_bias = np.ones((len(sorted_test_x), 1))
     Gen_PBF(sorted_test_x, K)
@@ -262,9 +276,11 @@ for K in range(3, K_iter_pbf):
         y_hat_test_PBF = y_hat_test_PBF + weight_PBF[n] * pow(sorted_test_x, n + 1)
     y_hat_test_PBF = y_hat_test_PBF + weight_PBF[K]
     value_CF_MSE_test_PBF = np.sum(pow(y_hat_test_PBF - sorted_test_y, 2)) / len(sorted_test_x)
+    # GBF에서와 모델 평가 검토 근거가 동일
     if value_CF_MSE_test_PBF > 1 and flag_overfitting_PBF == False:
         print("최적의 다항식 기저함수 개수 K는 ", K - 1 - 3)
         print("현재 K에 대한 MSE 값 : ", value_CF_MSE_test_PBF)
+        # 다항식 기저함수 개수의 이상적 K 개수를 초기화
         K_optimal_PBF = K - 1 - 3
         flag_overfitting_PBF = True
     history_test_MSE_PBF.append(value_CF_MSE_test_PBF)
@@ -295,7 +311,8 @@ plt.title('5. Mean Square Error')
 plt.grid(True, alpha=0.5)
 plt.show()
 
-for K in range(3, K_optimal_PBF):
+# 다항식 기저함수의 이상적 K 개수에 대한 Analytic Solution을 도식화
+for K in range(3, K_optimal_PBF): # 이상적인 기저함수 개수의 범위 제시
     y_pbf = np.zeros((len(sorted_train_x), K))
     func_bias = np.ones((len(sorted_train_x), 1))
     Gen_PBF(sorted_train_x, K)
@@ -305,27 +322,26 @@ for K in range(3, K_optimal_PBF):
     for n in range(K):
         y_hat_train_PBF = y_hat_train_PBF + weight_PBF[n] * pow(sorted_train_x, n + 1)
     y_hat_train_PBF = y_hat_train_PBF + weight_PBF[K]
-    value_CF_MSE_train_PBF = np.sum(pow(y_hat_train_PBF - sorted_train_y, 2)) / len(sorted_train_x)
-    history_training_MSE_PBF.append(value_CF_MSE_train_PBF)
 
-# Drawing Linear Regression
+# Drawing Linear Regression1 - Training DB
 plt.figure()
 plt.scatter(data_train_x, data_train_y, color='red')
 plt.plot(sorted_train_x, y_hat_train_PBF, 'b')
 plt.legend(['Analytic solution', 'Training set'])
 plt.xlabel('x; Weight')
 plt.ylabel('y; Length')
-plt.title('6. Linear Regression')
+plt.title('6-1. Linear Regression')
 plt.grid(True, alpha=0.5)
 plt.show()
 
+# Drawing Linear Regression2 - Test DB
 plt.figure()
 plt.scatter(data_test_x, data_test_y, color='green')
 plt.plot(sorted_train_x, y_hat_train_PBF, 'b')
 plt.legend(['Analytic solution', 'Test set'])
 plt.xlabel('x; Weight')
 plt.ylabel('y; Length')
-plt.title('6. Linear Regression')
+plt.title('6-2. Linear Regression')
 plt.grid(True, alpha=0.5)
 plt.show()
 
