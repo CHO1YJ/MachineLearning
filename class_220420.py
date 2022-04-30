@@ -162,12 +162,11 @@ for K in range(3, K_iter_gbf):
     # MSE가 1보다 커지는 순간 MSE 곡선의 기울기 부호가 변화함을 인식
     if value_CF_MSE_test > 1 and flag_overfitting_GBF == False:
         # 현재의 K는 MSE가 1을 넘어선 K이므로 1을 감소
-        # 현재 K는 3부터 시작하므로 동기를 맞추기 위하여 3을 추가 감소
-        # 따라서, Optimal K = K - 1 - 3
-        print("최적의 가우시안 기저함수 개수 K는 ", K - 1 - 3)
+        # 따라서, Optimal K = K - 1
+        print("최적의 가우시안 기저함수 개수 K는 ", K - 1)
         print("현재 K에 대한 MSE 값 : ", value_CF_MSE_test)
         # 가우시안 기저함수의 이상적 K 개수를 초기화
-        K_optimal_GBF = K - 1 - 3
+        K_optimal_GBF = K - 1
         # Overfitting이 발생하였으므로 flag를 False에서 True로 전환
         flag_overfitting_GBF = True
     history_test_MSE.append(value_CF_MSE_test)
@@ -278,10 +277,10 @@ for K in range(3, K_iter_pbf):
     value_CF_MSE_test_PBF = np.sum(pow(y_hat_test_PBF - sorted_test_y, 2)) / len(sorted_test_x)
     # GBF에서와 모델 평가 검토 근거가 동일
     if value_CF_MSE_test_PBF > 1 and flag_overfitting_PBF == False:
-        print("최적의 다항식 기저함수 개수 K는 ", K - 1 - 3)
+        print("최적의 다항식 기저함수 개수 K는 ", K - 1)
         print("현재 K에 대한 MSE 값 : ", value_CF_MSE_test_PBF)
         # 다항식 기저함수 개수의 이상적 K 개수를 초기화
-        K_optimal_PBF = K - 1 - 3
+        K_optimal_PBF = K - 1
         flag_overfitting_PBF = True
     history_test_MSE_PBF.append(value_CF_MSE_test_PBF)
 
