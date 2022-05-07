@@ -78,7 +78,7 @@ def Func_Logistic_Regression(datax0, datax1, y_r, w0, w1, w2, a): # 로지스틱
     p = p_init
     for t in range(step):       
         w0 = w0 - a * np.sum((p - y_r) * datax0) / len(datax0)
-        w1 = w1 - a * np.sum((p - y_r) * datax0) / len(datax0)
+        w1 = w1 - a * np.sum((p - y_r) * datax1) / len(datax0)
         w2 = w2 - a * np.sum(p - y_r) / len(datax0)
         
         p = 1 / (1 + np.exp(-(w0 * datax0 + w1 * datax1 + w2)))
@@ -154,10 +154,48 @@ sorted_train_x0 = training_set[:, 0]
 sorted_train_x1 = training_set[:, 1]
 sorted_train_y = training_set[:, 2]
 
+container_train_x0_0 = []
+container_train_x1_0 = []
+container_train_x0_1 = []
+container_train_x1_1 = []
+for n in range(len(sorted_train_x0)):
+    if sorted_train_y[n] == 0:
+        container_train_x0_0.append(sorted_train_x0[n])
+        container_train_x1_0.append(sorted_train_x1[n])
+    elif sorted_train_y[n] == 1:
+        container_train_x0_1.append(sorted_train_x0[n])
+        container_train_x1_1.append(sorted_train_x1[n])
+
 # 평가 데이터부 정렬 및 초기화
 sorted_test_x0 = test_set[:, 0]
 sorted_test_x1 = test_set[:, 1]
 sorted_test_y = test_set[:, 2]
+
+container_test_x0_0 = []
+container_test_x1_0 = []
+container_test_x0_1 = []
+container_test_x1_1 = []
+for n in range(len(sorted_test_x0)):
+    if sorted_test_y[n] == 0:
+        container_test_x0_0.append(sorted_test_x0[n])
+        container_test_x1_0.append(sorted_test_x1[n])
+    elif sorted_test_y[n] == 1:
+        container_test_x0_1.append(sorted_test_x0[n])
+        container_test_x1_1.append(sorted_test_x1[n])
+
+# Drawing Training and Test Set
+plt.figure()
+plt.scatter(container_train_x0_0, container_train_x1_0, marker='o', c='r', s=25)
+plt.scatter(container_train_x0_1, container_train_x1_1, marker='x', c='r', s=25)
+plt.scatter(container_test_x0_0, container_test_x1_0, marker='o', c='g', s=25)
+plt.scatter(container_test_x0_1, container_test_x1_1, marker='x', c='g', s=25)
+plt.legend(['Training set - 0', 'Training set - 1', \
+            'Test set - 0', 'Test set - 1'])
+plt.xlabel('x0; Input0')
+plt.ylabel('x1; Input1')
+plt.title('Data Base')
+plt.grid(True, alpha=0.5)
+plt.show()
 
 # (3) 정확도 및 CEE
 y_hat = weight_w0 * sorted_train_x0 + weight_w1 * sorted_train_x1 + weight_w2
@@ -177,23 +215,71 @@ def Decide_y_hat(p):
 
 Decide_y_hat(history_p)
 
-accuracy = np.zeros((step, len(sorted_train_x0)))
-def Measure_Accuracy(dcd_y_hat, y_rl):
+matrix_accuracy = np.zeros((step, len(sorted_train_x0)))
+accuracy = 0.
+history_accuracy = []
+def Measure_Accuracy(dcd_y_hat, train_y):
     for n in range(step):
         for m in range(len(sorted_train_x0)):
-            if dcd_y_hat[n][m] == y_rl[m]:
-                accuracy[n][m] = True
+            if dcd_y_hat[n][m] == train_y[m]:
+                matrix_accuracy[n][m] = True
             else:
-                accuracy[n][m] = False
+                matrix_accuracy[n][m] = False
+    count_accuracy = 0
+    for n in range(step):
+        for m in range(len(sorted_train_x0)):
+            if matrix_accuracy[n][m] == 1:
+                count_accuracy = count_accuracy + 1
+        accuracy = (count_accuracy / 350) * 100
+        history_accuracy.append(accuracy)
+        count_accuracy = 0
     return True
 
-Measure_Accuracy(decided_y_hat, y_real)
+Measure_Accuracy(decided_y_hat, sorted_train_y)
+history_CEE = []
+def Measure_CEE(p, train_y):
+    for n in range(step):
+        CEE = -np.sum(train_y * np.log(p[n]) + (1 - train_y) * np.log(1 - p[n])) / len(train_y)
+        history_CEE.append(CEE)
+    return True
 
+Measure_CEE(history_p, sorted_train_y)
 
+# Setting step
+step1 = np.arange(0, step + 1, 1)
+step2 = np.arange(0, step, 1)
 
+# Drawing Weight
+plt.figure()
+plt.plot(step1, history_w0, 'rv-', markevery = 50)
+plt.plot(step1, history_w1, 'gx-', markevery = 50)
+plt.plot(step1, history_w2, 'bo-', markevery = 50)
+plt.legend(['w0', 'w1', 'w2'], loc='center right')
+plt.xlabel('t; step')
+plt.ylabel('w0, w1, w2')
+plt.title('Logistic Regression - Weight')
+plt.grid(True, alpha=0.5)
+plt.show()
 
+# Drawing Accuracy
+plt.figure()
+plt.plot(step2, history_accuracy, 'ko-', markevery = 50)
+plt.legend(['Accuracy'], loc='center right')
+plt.xlabel('t; step')
+plt.ylabel('Accuracy')
+plt.title('Logistic Regression - Accuracy')
+plt.grid(True, alpha=0.5)
+plt.show()
 
-
+# Drawing CEE
+plt.figure()
+plt.plot(step2, history_CEE, 'ko-', markevery = 50)
+plt.legend(['CEE'], loc='center right')
+plt.xlabel('t; step')
+plt.ylabel('CEE')
+plt.title('Logistic Regression - CEE')
+plt.grid(True, alpha=0.5)
+plt.show()
 
 
 
