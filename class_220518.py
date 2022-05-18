@@ -9,10 +9,9 @@ input_data = pd.read_csv('Data_Base/NN_data.csv', \
                          index_col=0).to_numpy(dtype='float')
     
 def One_Hot_Encoding(data):
-    Encoding_y = np.zeros((len(data), 1))
+    Encoding_y = []
     data_y = data[:, 3]
     y_class = [] # class 종류 및 개수 데이터
-    count_class = 1
     
     # Check Class
     y_class.append(data_y[0])
@@ -23,18 +22,22 @@ def One_Hot_Encoding(data):
     print(y_class)
     
     # One-Hot Encoding
-    for n in range(y_class[-1] - 1):
-        for q in range(len(data)):
-            if y_class[n] == data_y[q]:
-                # if count_class 어떻게 처리할 지!
-                Encoding_y[q] = "100"
-        count_class = count_class + 1
+    for q in range(len(data)):
+        if y_class[0] == data_y[q]:
+            Encoding_y.append([1, 0, 0])
+        elif y_class[1] == data_y[q]:
+            Encoding_y.append([0, 1, 0])
+        elif y_class[2] == data_y[q]:
+            Encoding_y.append([0, 0, 1])
+            
+    Encoding_y = np.array(Encoding_y)
     
     return Encoding_y
     
-y = One_Hot_Encoding(input_data)
+y_One_Hot_Encoding = One_Hot_Encoding(input_data)
     
-    
+coverted_data = np.concatenate([np.delete(input_data, 3, axis=1) , \
+                                y_One_Hot_Encoding], 1)
     
     
     
