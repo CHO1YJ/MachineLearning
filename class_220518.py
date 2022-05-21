@@ -8,13 +8,14 @@ import pandas as pd
 input_data = pd.read_csv('Data_Base/NN_data.csv', \
                          index_col=0).to_numpy(dtype='float')
     
+# 출력을 필터링하고 bias를 붙임
 temp_input_data = input_data[:, 0:3]
 input_data_added_bias = np.concatenate((temp_input_data , np.ones((900, 1))), axis=1)
 
 # (1) One-Hot Encoding 구현
 def One_Hot_Encoding(data):
-    Encoding_y = []
-    data_y = data[:, 3]
+    Encoding_y = [] # One-Hot Encoding 결과값 기록함
+    data_y = data[:, 3] # 원본 데이터의 출력 초기화
     y_class = [] # class 종류 및 개수 데이터
     
     # Check Class
@@ -22,7 +23,11 @@ def One_Hot_Encoding(data):
     for q in range(len(input_data) - 1):
         if data_y[q] != data_y[q + 1]:
             y_class.append(data_y[q + 1])
-    y_class.append(len(y_class))
+    y_class.append(len(y_class)) # 마지막에 class 개수를 첨부
+    # 출력에 따라 정렬이 되어있으므로 따로 정렬할 필요는 없음
+    # 임의의 데이터라면 정렬이 필요할 것으로 생각됨
+    # 성분의 앞에서부터 오름차순으로 class의 성분들이 나타남
+    # 마지막 성분은 class의 개수로 초기화
     print(y_class)
     
     # One-Hot Encoding
@@ -34,44 +39,48 @@ def One_Hot_Encoding(data):
         elif y_class[2] == data_y[q]:
             Encoding_y.append([0, 0, 1])
             
-    Encoding_y = np.array(Encoding_y)
-    return Encoding_y
+    Encoding_y = np.array(Encoding_y) # numpy array로 초기화
+    return Encoding_y, y_class
     
-y_One_Hot_Encoding = One_Hot_Encoding(input_data)
-    
-coverted_data = np.concatenate([np.delete(input_data, 3, axis=1) , \
-                                y_One_Hot_Encoding], 1)
+# One-Hot Encoding 함수 호출
+y_One_Hot_Encoding, y_class = One_Hot_Encoding(input_data)
     
 # (2) Two-Layer Neural Network 구현
 # Setting Variable
-num_hidden_layer = 2 # Hidden layer의 Node 수
-num_output_layer = 3 # Output layer의 Node 수
+num_hidden_layer = 2 # Hidden Layer의 Node 수
+num_output_layer = y_class[-1] # Output layer의 Node 수
 
 def Two_Layer_Neural_Network(num_l, num_q):
     # Hidden Layer
+    # bias가 붙기 전 입력의 열의 개수가 속성 수
     M = temp_input_data.shape[1]
     print("Input 속성 수 : ", M)
     
+    # 가중치 v는 입력과 Hidden Layer의 node 수에 따라 size가 결정
     list_v = np.zeros((input_data_added_bias.shape[1], num_l))
     for n in range(input_data_added_bias.shape[1]):
         for l in range(num_l):
-            list_v[n][l] = np.random.randn()
-    alpha = input_data_added_bias.dot(list_v)  
-    b = 1 / (1 + np.exp(-alpha))
-    b = np.concatenate((b , np.ones((900, 1))), axis=1)
+            # 가우시안 함수에 따라 랜덤하게 가중치 값 초기화
+            list_v[n][l] = np.random.randn() 
+    alpha = input_data_added_bias.dot(list_v) # Hidden Layer의 입력 초기화
+    b = 1 / (1 + np.exp(-alpha)) # Hidden Layer의 출력 초기화
+    b = np.concatenate((b , np.ones((900, 1))), axis=1) # bias 첨부
           
     # Output Layer
+    # Output Layer의 속성 수는 출력 class의 수
     Q = num_q
     print("Output 속성 수 : ", Q)
     
+    # 가중치 w는 Hidden Layer와 출력의 node 수에 따라 size가 결정
     list_w = np.zeros((num_l + 1, Q))
     for l in range(num_l + 1):
         for q in range(Q):
             list_w[l][q] = np.random.randn()
     
-    beta = b.dot(list_w)
-    y_hat = 1 / (1 + np.exp(-beta))
+    beta = b.dot(list_w) # Output Layer의 입력 초기화
+    y_hat = 1 / (1 + np.exp(-beta)) # Output Layer의 출력 초기화
     
+    # 가중치 v와 w 그리고 Hidden, Output Layer의 출력을 반환
     return list_v, b, list_w, y_hat
     
 list_v, b_output_hidden_layer, list_w, y_hat = \
