@@ -47,7 +47,7 @@ y_One_Hot_Encoding, y_class = One_Hot_Encoding(input_data)
     
 # (2) Two-Layer Neural Network 구현
 # Setting Variable
-num_hidden_layer = 2 # Hidden Layer의 Node 수
+num_hidden_layer = 2 # Hidden Layer의 속성 수
 num_output_layer = y_class[-1] # Output layer의 Node 수
 
 def Two_Layer_Neural_Network(num_l, num_q):
@@ -61,7 +61,7 @@ def Two_Layer_Neural_Network(num_l, num_q):
     for n in range(input_data_added_bias.shape[1]):
         for l in range(num_l):
             # 가우시안 함수에 따라 랜덤하게 가중치 값 초기화
-            list_v[n][l] = np.random.randn() 
+            list_v[n][l] = np.random.randn()
     alpha = input_data_added_bias.dot(list_v) # Hidden Layer의 입력 초기화
     b = 1 / (1 + np.exp(-alpha)) # Hidden Layer의 출력 초기화
     b = np.concatenate((b , np.ones((900, 1))), axis=1) # bias 첨부
