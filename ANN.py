@@ -82,13 +82,8 @@ def Two_Layer_Neural_Network(data, num_l, num_q):
     
     # 가중치 v와 w 그리고 Hidden, Output Layer의 출력을 반환
     return list_v, b, list_w, y_hat
-    
-initial_v, b_output_hidden_layer, initial_w, y_hat = \
-    Two_Layer_Neural_Network(input_data_added_bias, num_hidden_layer, num_output_layer)
 
 # (3) Accuracy 함수 구현
-# y_hat 값 기록함 정의
-decided_y_hat = np.zeros((y_hat.shape[0], y_hat.shape[1]))
 # y_hat을 확률 값에 따라 1과 0으로 구분하는 함수 정의; 입력값은 확률값 p
 def Decide_y_hat(p, data):
     for n in range(data.shape[0]):
@@ -98,9 +93,6 @@ def Decide_y_hat(p, data):
             else:
                 decided_y_hat[n][m] = 0
     return True
-
-# y_hat 결정 함수 호출
-Decide_y_hat(y_hat, y_hat)
 
 # 정확도 기록함 행렬 정의; 각각의 성분에 대하여 True와 False로 표현
 matrix_accuracy = np.zeros((len(y_One_Hot_Encoding), 1))
@@ -126,11 +118,6 @@ def Measure_Accuracy(dcd_y_hat, data):
     count_accuracy = 0
     
     return acc
-
-# 정확도 측정 함수 호출
-accuracy = Measure_Accuracy(decided_y_hat, y_One_Hot_Encoding)
-
-print("정확도 : ", accuracy)
 
 # (4) 데이터 분할 함수
 # 데이터를 학습 데이터, 검증 데이터, 평가 데이터로 분할하는 함수
@@ -188,39 +175,74 @@ training_set, validation_set, test_set = Dist_Set(input_data_added_bias)
 
 # (5) 신경망 학습 함수 및 가중치 갱신
 # 신경망 학습 함수
-def learning_ANN(data, init_v, init_w, num_l, num_q):
+learning_rate = 0.015
+def learning_ANN(data, v, w, y_hat, y_real, b, num_l, num_q):
     np.random.shuffle(data)
+    u = learning_rate
     
-    # 가중치 v는 입력과 Hidden Layer의 node 수에 따라 size가 결정
-    list_v = np.zeros((data.shape[1], num_l))
+    renewal_v = np.zeros((data.shape[1], num_l))
+    renewal_w = np.zeros((num_l + 1, num_q))
+    
+    list_dmse_vml = []
+    dmse_vml = np.zeros((data.shape[1]))
     for n in range(data.shape[1]):
         for l in range(num_l):
-            # 가우시안 함수에 따라 랜덤하게 가중치 값 초기화
-            list_v[n][l] = np.random.randn()
-    alpha = data.dot(list_v) # Hidden Layer의 입력 초기화
-    b = 1 / (1 + np.exp(-alpha)) # Hidden Layer의 출력 초기화
-    b = np.concatenate((b , np.ones((len(data), 1))), axis=1) # bias 첨부
-          
-    # Output Layer
-    # Output Layer의 속성 수는 출력 class의 수
-    Q = num_q
+            dmse_vml = 2 * np.sum((y_hat - y_real) * y_hat * (1 - y_hat) * w[l])  \
+                                * b[n][l] * (1 - b[n][l])
+            dmse_vml = dmse_vml * data[n]
+            list_dmse_vml.append(dmse_vml)
+            renewal_v[:, l] = v[:, l] - u * dmse_vml
+            
+    # for n in range(data.shape[1]):
+    #     for l in range(num_l):
+    #         renewal_v[n][l] = v[n][l] - u * mse_vml
     
-    # 가중치 w는 Hidden Layer와 출력의 node 수에 따라 size가 결정
-    list_w = np.zeros((num_l + 1, Q))
-    for l in range(num_l + 1):
-        for q in range(Q):
-            list_w[l][q] = np.random.randn()
     
-    beta = b.dot(list_w) # Output Layer의 입력 초기화
-    y_hat = 1 / (1 + np.exp(-beta)) # Output Layer의 출력 초기화
-    return list_v, list_w, y_hat
+    # # 가중치 v는 입력과 Hidden Layer의 node 수에 따라 size가 결정
+    # list_v = np.zeros((data.shape[1], num_l))
+    # for n in range(data.shape[1]):
+    #     for l in range(num_l):
+    #         # 가우시안 함수에 따라 랜덤하게 가중치 값 초기화
+    #         list_v[n][l] = np.random.randn()
+    # alpha = data.dot(list_v) # Hidden Layer의 입력 초기화
+    # b = 1 / (1 + np.exp(-alpha)) # Hidden Layer의 출력 초기화
+    # b = np.concatenate((b , np.ones((900, 1))), axis=1) # bias 첨부
+    
+    # # 가중치 w는 Hidden Layer와 출력의 node 수에 따라 size가 결정
+    # list_w = np.zeros((num_l + 1, Q))
+    # for l in range(num_l + 1):
+    #     for q in range(Q):
+    #         list_w[l][q] = np.random.randn()
+    
+    # beta = b.dot(list_w) # Output Layer의 입력 초기화
+    # y_hat = 1 / (1 + np.exp(-beta)) # Output Layer의 출력 초기화
+    
+    # # 가중치 v와 w 그리고 Hidden, Output Layer의 출력을 반환
+    return renewal_v, list_dmse_vml
 
 # 가중치 갱신
 train_data = training_set
 epoch = 10
-for n in range(epoch):
-    weight_v, weight_w, learned_y_hat = learning_ANN(train_data, \
-                 initial_v, initial_w, num_hidden_layer, num_output_layer)
+initial_v, b_output_hidden_layer, initial_w, y_hat = \
+    Two_Layer_Neural_Network(input_data_added_bias, num_hidden_layer, num_output_layer)
+for n in range(10):
+    print(n)
+    # y_hat 값 기록함 정의
+    decided_y_hat = np.zeros((y_hat.shape[0], y_hat.shape[1]))
+    # y_hat 결정 함수 호출
+    Decide_y_hat(y_hat, y_hat)
+        
+    # 정확도 측정 함수 호출
+    accuracy = Measure_Accuracy(decided_y_hat, y_One_Hot_Encoding)
+    print("정확도 : ", accuracy)
+            
+    weight_v, dmse_vml = learning_ANN(train_data, initial_v, initial_w, y_hat, y_One_Hot_Encoding, \
+                    b_output_hidden_layer, num_hidden_layer, num_output_layer)
+        
+    # weight_v, weight_w, learned_y_hat = learning_ANN(train_data, \
+    #             initial_v, initial_w, y_hat, y_One_Hot_Encoding, \
+    #                 num_hidden_layer, num_output_layer)
+
 
 
 
