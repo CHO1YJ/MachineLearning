@@ -1,7 +1,8 @@
 # # Setting Module
 import numpy as np
+import seaborn as sns
 import pandas as pd
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 # Chap.4 실습 - First week
 # Reading Data
@@ -61,7 +62,7 @@ def Two_Layer_Neural_Network(data, num_l, num_q):
     for n in range(data.shape[1]):
         for l in range(num_l):
             # 가우시안 함수에 따라 랜덤하게 가중치 값 초기화
-            list_v[n][l] = np.random.randn() * 10
+            list_v[n][l] = np.random.randn()
     alpha = data.dot(list_v) # Hidden Layer의 입력 초기화
     b = 1 / (1 + np.exp(-alpha)) # Hidden Layer의 출력 초기화
     b = np.concatenate((b , np.ones((len(data), 1))), axis=1) # bias 첨부
@@ -75,13 +76,13 @@ def Two_Layer_Neural_Network(data, num_l, num_q):
     list_w = np.zeros((num_l + 1, Q))
     for l in range(num_l + 1):
         for q in range(Q):
-            list_w[l][q] = np.random.randn() * 10
+            list_w[l][q] = np.random.randn()
     
     beta = b.dot(list_w) # Output Layer의 입력 초기화
     y_hat = 1 / (1 + np.exp(-beta)) # Output Layer의 출력 초기화
     
     # 가중치 v와 w 그리고 Hidden, Output Layer의 출력을 반환
-    return list_v, b, list_w, y_hat
+    return list_v, list_w, y_hat
 
 # (3) Accuracy 함수 구현
 # y_hat을 확률 값에 따라 1과 0으로 구분하는 함수 정의; 입력값은 확률값 p
@@ -178,126 +179,255 @@ training_set, validation_set, test_set = Dist_Set(input_data_added_bias)
 def shuffle_data(data):
     np.random.shuffle(data)
     OHE_y = np.zeros((len(data), 3))
-    for m in range(data.shape[0]):
-        for n in range(len(input_data_added_bias)):
+    for m in range(data.shape[0]): # 630
+        for n in range(len(input_data_added_bias)): # 900
             if data[m].tolist() == input_data_added_bias[n].tolist():
                 OHE_y[m] = y_One_Hot_Encoding[n]
     return OHE_y
 
 # (6) 신경망 학습 함수 및 가중치 갱신
 # 신경망 학습 함수
-learning_rate = 0.001
-def learning_ANN(data, v, w, in_y_hat, y_real, in_b, num_l, num_q):
-    u = learning_rate
+learning_rate = 0.02 # 학습률
+# ANN Model 구현
+def learning_ANN(data, v, w, y_real, num_l, num_q):
+    u = learning_rate # 학습률
+    list_mem2 = [] # 가중치 v의 dms 기록함 - 코드가 정상적인지 확인하기 위함
+    list_mem1 = [] # 가중치 w의 dms 기록함 - 코드가 정상적인지 확인하기 위함
+    MSE = 0 # 모델의 MSE 값 정의
     
-    renewal_v = np.zeros((data.shape[1], num_l))
-    dmse_vml = np.zeros((data.shape[1], num_l))
-    renewal_w = np.zeros((num_l + 1, num_q))
-    dmse_wlq = np.zeros((num_l + 1, num_q))
+    # 가중치 v, w 초기값 및 갱신값 적용
+    renewal_v = v
+    renewal_w = w
     
-    list_mem2 = []
-    list_mem1 = []
+    # Error Back Propagation Algorithm of ANN 구현
     for n in range(data.shape[0]):
+        # 가중치 v, w 초기화
+        dmse_vml = np.zeros((train_data.shape[1], num_hidden_layer))
+        dmse_wlq = np.zeros((num_hidden_layer + 1, num_output_layer))
+        
+        # 갱신된 v, w를 통한 y_hat 계산
+        renewal_alpha = data.dot(renewal_v) # Hidden Layer의 입력 초기화
+        renewal_b = 1 / (1 + np.exp(-renewal_alpha)) # Hidden Layer의 출력 초기화
+        renewal_b = np.concatenate((renewal_b , np.ones((len(data), 1))), axis=1) # bias 첨부
+        
+        renewal_beta = renewal_b.dot(renewal_w) # Output Layer의 입력 초기화
+        renewal_y_hat = 1 / (1 + np.exp(-renewal_beta)) # Output Layer의 출력 초기화
+        
+        # 가중치 v 갱신
         for m in range(data.shape[1]):
             for l in range(num_l):
+                dmse_vml[m][l] = 0
                 for q in range(num_q):
-                    dmse_vml[m][l] = 2 * np.sum((in_y_hat[n][q] - y_real[n][q]) \
-                            * in_y_hat[n][q] * (1 - in_y_hat[n][q]) * w[l][q]) \
-                            * in_b[n][l] * (1 - in_b[n][l]) * data[n][m]
+                    dmse_vml[m][l] = dmse_vml[m][l] + 2 * (renewal_y_hat[n][q] - y_real[n][q]) \
+                        * renewal_y_hat[n][q] * (1 - renewal_y_hat[n][q]) * renewal_w[l][q]
+                dmse_vml[m][l] = dmse_vml[m][l] * renewal_b[n][l] * (1 - renewal_b[n][l]) * data[n][m]
         list_mem1.append(dmse_vml)
-        renewal_v = v - u * dmse_vml
+        renewal_v = renewal_v - u * dmse_vml
     
+        # 가중치 w 갱신
         for l in range(num_l + 1):
             for q in range(num_q):
-                dmse_wlq[l][q] = 2 * (in_y_hat[n][q] - y_real[n][q]) \
-                                  * in_y_hat[n][q] * (1 - in_y_hat[n][q]) * in_b[n][l]
+                dmse_wlq[l][q] = 2 * (renewal_y_hat[n][q] - y_real[n][q]) \
+                    * renewal_y_hat[n][q] * (1 - renewal_y_hat[n][q]) * renewal_b[n][l]
         list_mem2.append(dmse_wlq)
-        renewal_w = w - u * dmse_wlq
+        renewal_w = renewal_w - u * dmse_wlq
+    
+    # 모델의 MSE 계산
+    for q in range(num_q):
+        MSE = MSE + np.sum((renewal_y_hat[:, q] - y_real[:, q]) ** 2) / len(renewal_y_hat)
+    mem_MSE.append(MSE)
+    
+    # y_hat 결정 함수 호출
+    Decide_y_hat(renewal_y_hat, renewal_y_hat)
         
-        # for l in range(num_l):
-        #     for m in range(data.shape[1]):
-        #         dmse_vml[m][l] = 2 * np.sum(((in_y_hat[n] - y_real[n]) \
-        #                 * in_y_hat[n] * (1 - in_y_hat[n])).dot(np.transpose(w))) \
-        #                 * in_b[n][l] * (1 - in_b[n][l]) * data[n][m]
-        # # dmse_vml = np.reshape(dmse_vml, (data.shape[1], 1))
-        # list_mem1.append(dmse_vml)
-        # renewal_v = v - u * dmse_vml
-    
-    # # 가중치 v 갱신; for문 중복
-    # # m하고 l하고 q
-    # # for n in range(~~)
-    # dmse_vml = np.zeros(data.shape[1])
-    # for n in range(data.shape[0]):
-    #     for l in range(num_l):
-    #         list_mem1 = []
-    #         for m in range(data.shape[1]):
-    #             dmse_vml = 2 * np.sum((y_hat - y_real) * y_hat * (1 - y_hat) * w[l])  \
-    #                             * b[n][l] * (1 - b[n][l]) * data[m]
-    #             list_mem1.append(dmse_vml)
-    #             dmse_vml = np.reshape(dmse_vml, (data.shape[1], 1))
-    #             renewal_v = v - u * dmse_vml
-    #             # renewal_v[:, l] = v[:, l] - u * dmse_vml
-    # # 가중치 w 갱신
-    # dmse_wlq = np.zeros(num_q)
-    # for l in range(num_l + 1):
-    #     list_mem2 = []
-    #     for q in range(num_q):
-    #         dmse_wlq = 2 * (y_hat[q] - y_real[q]) * y_hat[q] * (1 - y_hat[q]) * b[l]
-    #         list_mem2.append(dmse_wlq)
-    #         renewal_w[:, q] = w[:, q] - u * dmse_wlq
-    
-    # 갱신된 v, w를 통한 y_hat 계산
-    alpha = data.dot(renewal_v) # Hidden Layer의 입력 초기화
-    renewal_b = 1 / (1 + np.exp(-alpha)) # Hidden Layer의 출력 초기화
-    renewal_b = np.concatenate((renewal_b , np.ones((len(data), 1))), axis=1) # bias 첨부
-    
-    beta = renewal_b.dot(renewal_w) # Output Layer의 입력 초기화
-    renewal_y_hat = 1 / (1 + np.exp(-beta)) # Output Layer의 출력 초기화
+    # 정확도 측정 함수 호출 $ 모델의 정확도 측정
+    training_accuracy = Measure_Accuracy(decided_y_hat, sorted_OHE_y)
+    mem_accuracy.append(training_accuracy)
+    print("모델 정확도 :", training_accuracy)
     
     # 가중치 v와 w 그리고 b, y_hat, y_real의 출력을 반환
-    return renewal_v, renewal_w, renewal_b, renewal_y_hat, list_mem1, list_mem2
+    return renewal_v, renewal_w, list_mem1, list_mem2
 
 # 가중치 갱신
 train_data = training_set
 # Shuffle data
-epoch = 10
-initial_v, b_output_hidden_layer, initial_w, y_hat = \
-    Two_Layer_Neural_Network(train_data, num_hidden_layer, num_output_layer)
+epoch = 50 # 학습 횟수
+# 초기값 설정
+initial_v, initial_w, y_hat = \
+                Two_Layer_Neural_Network(train_data, num_hidden_layer, num_output_layer)
+# 초기값으로 초기화
 weight_v = initial_v
 weight_w = initial_w
-b = b_output_hidden_layer
-sorted_OHE_y = shuffle_data(train_data)
+
+# y_hat 값 기록함 정의
+decided_y_hat = np.zeros((y_hat.shape[0], y_hat.shape[1]))
+
+# 모델 정확도 및 MSE 기록함
+mem_accuracy = []
+mem_MSE = []
+
 for n in range(epoch):
-    print(n)
-    # y_hat 값 기록함 정의
-    decided_y_hat = np.zeros((y_hat.shape[0], y_hat.shape[1]))
-    # y_hat 결정 함수 호출
-    Decide_y_hat(y_hat, y_hat)
-        
-    # 정확도 측정 함수 호출
-    accuracy = Measure_Accuracy(decided_y_hat, sorted_OHE_y)
-    print("정확도 : ", accuracy)
-           
-    weight_v, weight_w, b, y_hat, mem1, mem2 = learning_ANN(train_data, weight_v, weight_w, y_hat, sorted_OHE_y, \
-                    b, num_hidden_layer, num_output_layer)
-    # weight_v, weight_w, learned_y_hat = learning_ANN(train_data, \
-    #             initial_v, initial_w, y_hat, y_One_Hot_Encoding, \
-    #                 num_hidden_layer, num_output_layer)
+    print("훈련 횟수 :", n) 
+    
+    sorted_OHE_y = shuffle_data(train_data)    
+    
+    weight_v, weight_w, mem1, mem2 = \
+        learning_ANN(train_data, weight_v, weight_w, sorted_OHE_y, num_hidden_layer, num_output_layer)
 
+# 모델 평가 결과 확인
+test_set = test_set
+# 평가 결과에 따른 y_hat 발생 함수
+def test_model(data, test_v, test_w):
+    # 갱신된 v, w를 통한 y_hat 계산
+    test_alpha = data.dot(test_v) # Hidden Layer의 입력 초기화
+    test_b = 1 / (1 + np.exp(-test_alpha)) # Hidden Layer의 출력 초기화
+    test_b = np.concatenate((test_b , np.ones((len(data), 1))), axis=1) # bias 첨부
+    
+    test_beta = test_b.dot(test_w) # Output Layer의 입력 초기화
+    test_y_hat = 1 / (1 + np.exp(-test_beta)) # Output Layer의 출력 초기화
+    return test_y_hat
 
+# 평가 결과 y_hat 반환
+result_y_hat = test_model(test_set, weight_v, weight_w)
 
+# 평가 DB에 대응되는 index의 One-Hot Encoding y 발생 함수
+def sorted_OHE_y(data):
+    OHE_y = np.zeros((len(data), 3))
+    for m in range(data.shape[0]):
+        for n in range(len(input_data_added_bias)):
+            if data[m].tolist() == input_data_added_bias[n].tolist():
+                OHE_y[m] = y_One_Hot_Encoding[n]
+    return OHE_y
 
+# 결과 y_hat 값 기록함 정의
+decided_y_hat = np.zeros((result_y_hat.shape[0], result_y_hat.shape[1]))
+# y_hat 결정 함수 호출
+Decide_y_hat(result_y_hat, result_y_hat)
+# test set에 대응하는 One-Hot-Encoding 구현
+test_OHE_y = sorted_OHE_y(test_set)
+# 정확도 측정 함수 호출
+test_accuracy = Measure_Accuracy(decided_y_hat, test_OHE_y)
+print("평가 정확도 :", test_accuracy)
 
+# 평가 MSE
+result_MSE = 0
+for q in range(num_output_layer):
+    result_MSE = result_MSE + np.sum((result_y_hat[:, q] - test_OHE_y[:, q]) ** 2) / len(result_y_hat)
 
+# Setting step
+epoch1 = np.arange(0, epoch, 1)
 
+# Drawing Accuracy
+plt.figure()
+plt.plot(epoch1, mem_accuracy, 'ko-', markevery = 50)
+plt.scatter(epoch, test_accuracy, c='r')
+plt.legend(['Accuracy', 'Test Result'], loc='center right')
+plt.xlabel('epoch')
+plt.ylabel('Accuracy')
+plt.title('ANN (Aritificial Neural Network)')
+plt.grid(True, alpha=0.5)
+plt.show()
 
+# Drawing MSE
+plt.figure()
+plt.plot(epoch1, mem_MSE, 'ko-', markevery = 50)
+plt.scatter(epoch, result_MSE, c='r')
+plt.legend(['MSE', 'Test MSE'], loc='center right')
+plt.xlabel('epoch')
+plt.ylabel('MSE')
+plt.title('ANN - MSE')
+plt.grid(True, alpha=0.5)
+plt.show()
 
+# Generate Confusion Matrix
+# Confusion Matrix 정의
+Confusion_Matrix_by_Result = np.zeros((len(result_y_hat), num_output_layer))
+# Confusion Matrix의 참과 거짓에 따른 성분 정의 및 초기화
+# 1행 성분들
+t_element_100 = 0
+f_element_100_010 = 0
+f_element_100_001 = 0
+f_element_100_else = 0
+#2행 성분들
+t_element_010 = 0
+f_element_010_100 = 0
+f_element_010_001 = 0
+f_element_010_else = 0
+# 3행 성분들
+t_element_001 = 0
+f_element_001_100 = 0
+f_element_001_010 = 0
+f_element_001_else = 0
+# 4행 성분 - "000"을 걸러내기 위한 행으로 나머지 3개 성분은 필요 없는 성분!
+f_element_else = 0
+# Algorithm Counting Elements
+for n in range(len(decided_y_hat)):
+    # Filtering diagonal elements
+    if decided_y_hat[n].tolist() == test_OHE_y[n].tolist() and decided_y_hat[n][0] == 1: # 100-100
+        t_element_100 = t_element_100 + 1
+    elif decided_y_hat[n].tolist() == test_OHE_y[n].tolist() and decided_y_hat[n][1] == 1: # 010-010
+        t_element_010 = t_element_010 + 1
+    elif decided_y_hat[n].tolist() == test_OHE_y[n].tolist() and decided_y_hat[n][2] == 1: # 001-001
+        t_element_001 = t_element_001 + 1 
+    
+    # Filtering elements of first row
+    elif decided_y_hat[n].tolist() != test_OHE_y[n].tolist() and decided_y_hat[n][0] == 1:
+        if test_OHE_y[n].tolist() == [0, 1, 0]: # 100-010
+            f_element_100_010 = f_element_100_010 + 1
+        elif test_OHE_y[n].tolist() == [0, 0, 1]: # 100-001
+            f_element_100_001 = f_element_100_001 + 1
+        else: # 100-else
+            f_element_100_else = f_element_100_else + 1
+    
+    # Filtering elements of second row
+    elif decided_y_hat[n].tolist() != test_OHE_y[n].tolist() and decided_y_hat[n][1] == 1:
+        if test_OHE_y[n].tolist() == [1, 0, 0]: # 010-100
+            f_element_010_100 = f_element_010_100 + 1
+        elif test_OHE_y[n].tolist() == [0, 0, 1]: # 010-001
+            f_element_010_001 = f_element_010_001 + 1
+        else: # 010-else
+            f_element_010_else = f_element_010_else + 1
+    # Filtering elements of third row
+    elif decided_y_hat[n].tolist() != test_OHE_y[n].tolist() and decided_y_hat[n][2] == 1:
+        if test_OHE_y[n].tolist() == [1, 0, 0]: # 001-100
+            f_element_001_100 = f_element_001_100 + 1
+        elif test_OHE_y[n].tolist() == [0, 1, 0]: # 001-010
+            f_element_001_010 = f_element_001_010 + 1
+        else: # 001-else
+            f_element_001_else = f_element_001_else + 1
+    # Filtering elements of fourth row
+    elif decided_y_hat[n].tolist() != test_OHE_y[n].tolist() and decided_y_hat[n].tolist() == [0, 0, 0]:
+        f_element_else = f_element_else + 1
 
+# 성분들을 확률로 나타내기 위한 행 별로 전체 개수 계산
+total_100 = t_element_100 + f_element_100_010 + f_element_100_001 + f_element_100_else
+total_010 = f_element_010_100 + t_element_010 + f_element_010_001 + f_element_010_else
+total_001 = f_element_001_100 + f_element_001_010 + t_element_001 + f_element_001_else
+list_total = np.array([total_100, total_010, total_001, f_element_else])
 
+# Confusion_Matrix_Result 초기화
+Confusion_Matrix_by_Result = \
+    np.array([[t_element_100, f_element_100_010, f_element_100_001, f_element_100_else], \
+              [f_element_010_100, t_element_010, f_element_010_001, f_element_010_else], \
+                  [f_element_001_100, f_element_001_010, t_element_001, f_element_001_else], \
+                      [0, 0, 0, f_element_else]], dtype='float')
 
+# Confusion Matrix_Result 성분들의 확률화
+for n in range(Confusion_Matrix_by_Result.shape[0]):
+    Confusion_Matrix_by_Result[n] = Confusion_Matrix_by_Result[n] / list_total[n]
 
-
-
+# 데이터 프레임으로 변환
+df_cm = pd.DataFrame(Confusion_Matrix_by_Result, index = \
+                     [i for i in ["100", "010", "001", "Else"]], \
+                     columns=[i for i in ["100", "010", "001", "Else"]])
+# Confusion Matrix 시각화
+plt.figure(figsize=(8, 8))
+plt.title("Confusion Matrix", fontsize=35)
+sns.heatmap(df_cm, annot=True, linewidths=.5, annot_kws={"size": 20})
+plt.xlabel("Target - One Hot Encoding of y", fontsize=20)
+plt.ylabel("Output Class - y_hat", fontsize=20)
+plt.tight_layout()
+plt.show()
 
 
 
