@@ -251,7 +251,7 @@ def learning_ANN(data, v, w, y_real, num_l, num_q):
 # 가중치 갱신
 train_data = training_set
 # Shuffle data
-epoch = 50 # 학습 횟수
+epoch = 200 # 학습 횟수
 # 초기값 설정
 initial_v, initial_w, y_hat = \
                 Two_Layer_Neural_Network(train_data, num_hidden_layer, num_output_layer)
